@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "libretv-next",
+  "main": ".open-next/worker.js",
+  // 2026-11-02: nodejs_compat is on by default for dates on/after 2026-08-04.
+  // The flag is set explicitly so the Node.js runtime stays opt-in if the date moves back.
+  "compatibility_date": "2026-11-02",
+  "compatibility_flags": [
+    "nodejs_compat",
+    // Route global fetch() as public Internet traffic. Required by the OpenNext
+    // Cloudflare adapter so server-side fetches do not bypass the zone front door.
+    // https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public
+    "global_fetch_strictly_public"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SESSION_COOKIE, checkRateLimit, sessionFromCookieHeader, signSession, checkPassword, clearRateLimit, isPasswordConfigured } from '@/lib/auth';
+import { requestIsHttps } from '@/lib/request-https';
 
 export const runtime = 'nodejs';
 
@@ -34,13 +35,10 @@ export async function POST(req: Request) {
   clearRateLimit(ip);
   const { token, expiresAt } = signSession();
   const res = NextResponse.json({ success: true });
-  // Cookie Secure 策略：COOKIE_SECURE 环境变量显式覆盖；否则按 x-forwarded-proto 推导。
+  // Cookie Secure 策略：COOKIE_SECURE 环境变量显式覆盖；否则按用户侧协议推导。
   // 不能依赖 req.url——Next.js Route Handler 中它是内部转发地址，并非用户侧的原始协议。
-  const secure = process.env.COOKIE_SECURE === 'true'
-    ? true
-    : process.env.COOKIE_SECURE === 'false'
-      ? false
-      : (req.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() ?? 'http') === 'https';
+  // 反代通常带 x-forwarded-proto；Cloudflare Workers 经常只带 CF-Visitor，没有前者。
+  const secure = requestIsHttps(req);
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
